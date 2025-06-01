@@ -22,9 +22,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import ru.yandex.buggyweatherapp.api.RetrofitInstance
-import ru.yandex.buggyweatherapp.repository.LocationRepository
-import ru.yandex.buggyweatherapp.repository.WeatherRepository
+import androidx.hilt.navigation.compose.hiltViewModel
+import ru.yandex.buggyweatherapp.data.repository.LocationRepository
+import ru.yandex.buggyweatherapp.data.repository.WeatherRepository
+import ru.yandex.buggyweatherapp.domain.api.WeatherRepositoryApi
+import ru.yandex.buggyweatherapp.presentation.WeatherViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,12 +69,13 @@ fun LocationSearch(
 }
 
 @Composable
-fun LocationSearchWithDirectApiCall() {
+fun LocationSearchWithDirectApiCall(
+    viewModel: WeatherViewModel = hiltViewModel()
+) {
     val context = LocalContext.current
     var searchText by remember { mutableStateOf("") }
-    
-    
-    val weatherRepository = WeatherRepository()
+
+//    val weatherRepository: WeatherRepositoryApi = WeatherRepository()
     val locationRepository = LocationRepository(context)
     
     OutlinedTextField(
@@ -86,7 +89,8 @@ fun LocationSearchWithDirectApiCall() {
             IconButton(onClick = { 
                 if (searchText.isNotBlank()) {
                     
-                    weatherRepository.getWeatherByCity(searchText) { weatherData, error -> }
+//                    weatherRepository.getWeatherByCity(searchText) { weatherData, error -> }
+                    viewModel.searchWeatherByCity(searchText)
                 }
             }) {
                 Icon(Icons.Default.Search, contentDescription = "Search")

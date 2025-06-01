@@ -1,4 +1,4 @@
-package ru.yandex.buggyweatherapp.repository
+package ru.yandex.buggyweatherapp.data.repository
 
 import android.content.Context
 import android.location.Geocoder
@@ -10,19 +10,22 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
-import ru.yandex.buggyweatherapp.model.Location
+import dagger.hilt.android.qualifiers.ApplicationContext
+import ru.yandex.buggyweatherapp.domain.api.LocationRepositoryApi
+import ru.yandex.buggyweatherapp.domain.model.Location
 import ru.yandex.buggyweatherapp.utils.LocationTracker
 import java.util.Locale
+import javax.inject.Inject
 
-class LocationRepository(
-    private val context: Context,
-) {
+class LocationRepository @Inject constructor(
+    @ApplicationContext private val context: Context,
+) : LocationRepositoryApi {
     private val fusedLocationClient: FusedLocationProviderClient =
         LocationServices.getFusedLocationProviderClient(context)
     private var currentLocation: Location? = null
     private var locationCallback: ((Location?) -> Unit)? = null
 
-    fun getCurrentLocation(callback: (Location?) -> Unit) {
+    override fun getCurrentLocation(callback: (Location?) -> Unit) {
         try {
             locationCallback = callback
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
@@ -44,7 +47,6 @@ class LocationRepository(
             callback(null)
         }
     }
-
 
     private fun requestLocationUpdates(callback: (Location?) -> Unit) {
         try {
@@ -70,8 +72,7 @@ class LocationRepository(
         }
     }
 
-
-    fun getCityNameFromLocation(location: Location): String? {
+    override fun getCityNameFromLocation(location: Location): String? {
         try {
             val geocoder = Geocoder(context, Locale.getDefault())
             @Suppress("DEPRECATION") val addresses =
@@ -88,7 +89,7 @@ class LocationRepository(
         }
     }
 
-    fun startLocationTracking() {
+    override fun startLocationTracking() {
         LocationTracker.getInstance(context).startTracking()
     }
 }
