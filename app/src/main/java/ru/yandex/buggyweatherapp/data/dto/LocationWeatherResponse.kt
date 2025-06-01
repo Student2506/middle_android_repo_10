@@ -19,5 +19,7 @@ data class LocationWeatherResponse(
     @SerializedName("timezone") val timezone: Int,
     @SerializedName("visibility") val visibility: Int,
     @SerializedName("weather") val weather: List<Weather>,
-    @SerializedName("wind") val wind: Wind,
+    @SerializedName("wind") val wind: Wind?,
+    @SerializedName("rain") val rain: Rain?,
+    @SerializedName("snow") val snow: Snow?,
 ) : Response(), Parcelable

@@ -6,6 +6,7 @@ import com.google.gson.annotations.SerializedName
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
-data class Pod(
-    @SerializedName("pod") val pod: String,
+data class Snow(
+    @SerializedName("3h") val h3: Double?,
+    @SerializedName("1h") val h1: Double?,
 ) : Parcelable

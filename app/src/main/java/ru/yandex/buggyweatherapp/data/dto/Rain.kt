@@ -1,13 +1,12 @@
 package ru.yandex.buggyweatherapp.data.dto
 
 
+import android.os.Parcelable
 import com.google.gson.annotations.SerializedName
 import kotlinx.parcelize.Parcelize
-import android.os.Parcelable
-import ru.yandex.buggyweatherapp.data.dto.Response
 
 @Parcelize
 data class Rain(
-    @SerializedName("3h")
-    val h: Double
+    @SerializedName("3h") val h3: Double?,
+    @SerializedName("1h") val h1: Double?,
 ) : Parcelable

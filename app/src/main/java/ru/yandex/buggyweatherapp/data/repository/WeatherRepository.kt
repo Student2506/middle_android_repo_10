@@ -1,123 +1,73 @@
 package ru.yandex.buggyweatherapp.data.repository
 
 import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
 import android.util.Log
-import com.google.gson.JsonObject
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
-import ru.yandex.buggyweatherapp.data.api.WeatherApiService
+import ru.yandex.buggyweatherapp.data.NetworkClient
+import ru.yandex.buggyweatherapp.data.dto.CityWeatherRequest
+import ru.yandex.buggyweatherapp.data.dto.CityWeatherResponse
+import ru.yandex.buggyweatherapp.data.dto.LocationWeatherRequest
+import ru.yandex.buggyweatherapp.data.dto.LocationWeatherResponse
 import ru.yandex.buggyweatherapp.domain.api.WeatherRepositoryApi
 import ru.yandex.buggyweatherapp.domain.model.Location
 import ru.yandex.buggyweatherapp.domain.model.Resource
 import ru.yandex.buggyweatherapp.domain.model.WeatherData
+import ru.yandex.buggyweatherapp.utils.WeatherDataMapper
 import javax.inject.Inject
 
 class WeatherRepository @Inject constructor(
-    private val weatherApi: WeatherApiService,
+    private val networkClient: NetworkClient,
     @ApplicationContext private val context: Context,
 ) : WeatherRepositoryApi {
 
     private var cachedWeatherData: WeatherData? = null
 
-    override fun getWeatherData(location: Location, callback: (WeatherData?, Exception?) -> Unit): Flow<Resource<WeatherData>> = flow {
+    override fun getWeatherData(location: Location): Flow<Resource<WeatherData>> = flow {
 
-        val response = weatherApi.getCurrentWeather(location.latitude, location.longitude)
-        when (response.res)
-
-        try {
-
-            val response = call.execute()
-
-            if (response.isSuccessful) {
-                val weatherData = parseWeatherData(response.body()!!, location)
-                cachedWeatherData = weatherData
-                callback(weatherData, null)
-            } else {
-
-                callback(null, Exception("API Error: ${response.code()}"))
+        val response = networkClient.doRequest(LocationWeatherRequest(location))
+        Log.d(TAG, "It returns $response and ${response.resultCode}")
+        when (response.resultCode) {
+            -1 -> emit(Resource.Failure("Check network connectivity"))
+            200 -> {
+                cachedWeatherData =
+                    WeatherDataMapper.getWeatherData(response as LocationWeatherResponse)
+                Log.d(TAG, "I got $cachedWeatherData")
+                emit(
+                    Resource.Success(
+                        cachedWeatherData!!
+                    )
+                )
             }
-        } catch (e: Exception) {
 
-            Log.e("WeatherRepository", "Error fetching weather", e)
-            callback(null, e)
+            400 -> emit(Resource.Failure("Wrong incoming data"))
+            500 -> emit(Resource.Failure("Server error"))
         }
     }
 
-    override fun getWeatherByCity(cityName: String, callback: (WeatherData?, Exception?) -> Unit) {
-        weatherApi.getWeatherByCity(cityName).enqueue(object : Callback<JsonObject> {
-            override fun onResponse(call: Call<JsonObject>, response: Response<JsonObject>) {
-                if (response.isSuccessful && response.body() != null) {
-                    try {
-                        val json = response.body()!!
-                        val location = extractLocationFromResponse(json)
-                        val weatherData = parseWeatherData(json, location)
-                        callback(weatherData, null)
-                    } catch (e: Exception) {
-
-                        callback(null, e)
-                    }
-                } else {
-                    callback(null, Exception("Error fetching weather data"))
-                }
+    override fun getWeatherByCity(cityName: String): Flow<Resource<WeatherData>> = flow {
+        val response = networkClient.doRequest(CityWeatherRequest(cityName))
+        when (response.resultCode) {
+            -1 -> emit(Resource.Failure("Check network connectivity"))
+            200 -> {
+                cachedWeatherData =
+                    WeatherDataMapper.getWeatherDataForCity(response as CityWeatherResponse)
+                emit(
+                    Resource.Success(
+                        cachedWeatherData!!
+                    )
+                )
             }
 
-            override fun onFailure(call: Call<JsonObject>, t: Throwable) {
-                callback(null, Exception(t))
-            }
-        })
+            400 -> emit(Resource.Failure("Wrong incoming data"))
+            500 -> emit(Resource.Failure("Server error"))
+        }
     }
 
 
-    private fun parseWeatherData(json: JsonObject, location: Location): WeatherData {
-
-        val main = json.getAsJsonObject("main")
-        val wind = json.getAsJsonObject("wind")
-        val sys = json.getAsJsonObject("sys")
-        val weather = json.getAsJsonArray("weather").get(0).asJsonObject
-        val clouds = json.getAsJsonObject("clouds")
-
-        return WeatherData(
-            cityName = json.get("name").asString,
-            country = sys.get("country").asString,
-            temperature = main.get("temp").asDouble,
-            feelsLike = main.get("feels_like").asDouble,
-            minTemp = main.get("temp_min").asDouble,
-            maxTemp = main.get("temp_max").asDouble,
-            humidity = main.get("humidity").asInt,
-            pressure = main.get("pressure").asInt,
-            windSpeed = wind.get("speed").asDouble,
-            windDirection = if (wind.has("deg")) wind.get("deg").asInt else 0,
-            description = weather.get("description").asString,
-            icon = weather.get("icon").asString,
-            cloudiness = clouds.get("all").asInt,
-            sunriseTime = sys.get("sunrise").asLong,
-            sunsetTime = sys.get("sunset").asLong,
-            timezone = json.get("timezone").asInt,
-            timestamp = json.get("dt").asLong,
-            rawApiData = json.toString(),
-            rain = if (json.has("rain") && json.getAsJsonObject("rain")
-                    .has("1h")
-            ) json.getAsJsonObject("rain").get("1h").asDouble else null,
-            snow = if (json.has("snow") && json.getAsJsonObject("snow")
-                    .has("1h")
-            ) json.getAsJsonObject("snow").get("1h").asDouble else null
-        )
+    private companion object {
+        const val TAG = "WeatherRepository"
     }
-
-    private fun extractLocationFromResponse(json: JsonObject): Location {
-        val coord = json.getAsJsonObject("coord")
-        val lat = coord.get("lat").asDouble
-        val lon = coord.get("lon").asDouble
-        val name = json.get("name").asString
-
-        return Location(lat, lon, name)
-    }
-
 
 }

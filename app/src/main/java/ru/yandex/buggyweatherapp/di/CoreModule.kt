@@ -10,7 +10,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import ru.yandex.buggyweatherapp.data.NetworkClient
 import ru.yandex.buggyweatherapp.data.api.WeatherApiService
+import ru.yandex.buggyweatherapp.data.network.RetrofitNetworkClient
 import ru.yandex.buggyweatherapp.data.repository.LocationRepository
 import ru.yandex.buggyweatherapp.data.repository.WeatherRepository
 import ru.yandex.buggyweatherapp.domain.api.LocationRepositoryApi
@@ -29,6 +31,10 @@ interface CoreModule {
     @Singleton
     fun bindLocationRepository(locationRepository: LocationRepository): LocationRepositoryApi
 
+    @Binds
+    @Singleton
+    fun bindNetworkClient(networkClient: RetrofitNetworkClient): NetworkClient
+
     companion object {
         @Provides
         @Singleton
@@ -37,5 +43,6 @@ interface CoreModule {
                 .addConverterFactory(GsonConverterFactory.create(Gson())).build()
                 .create(WeatherApiService::class.java)
         }
+
     }
 }

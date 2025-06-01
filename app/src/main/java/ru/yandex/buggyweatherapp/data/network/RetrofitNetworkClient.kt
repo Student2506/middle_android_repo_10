@@ -3,6 +3,7 @@ package ru.yandex.buggyweatherapp.data.network
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.util.Log
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -11,11 +12,12 @@ import ru.yandex.buggyweatherapp.data.api.WeatherApiService
 import ru.yandex.buggyweatherapp.data.dto.CityWeatherRequest
 import ru.yandex.buggyweatherapp.data.dto.LocationWeatherRequest
 import ru.yandex.buggyweatherapp.data.dto.Response
+import javax.inject.Inject
 
-class RetrofitNetworkClient(
+class RetrofitNetworkClient @Inject constructor(
     private val weatherApiService: WeatherApiService,
     @ApplicationContext private val context: Context,
-) : NetworkClient{
+) : NetworkClient {
 
     override suspend fun doRequest(dto: Any): Response {
         if (isConnected() == false) {
@@ -27,18 +29,27 @@ class RetrofitNetworkClient(
         }
 
         return withContext(Dispatchers.IO) {
-           try {
-               when (dto) {
-                   is CityWeatherRequest -> {
-                       val response = weatherApiService.getWeatherByCity(dto.cityName)
-                       response.apply { resultCode = 200 }
-                   }
-                   is LocationWeatherRequest {
-                       val response = weatherApiService.getCurrentWeather(dto.location.latitude, dto.location.latitude)
-                   }
-               }
+            try {
+                Log.d(TAG, "Response $dto")
+                when (dto) {
+                    is CityWeatherRequest -> {
+                        val response = weatherApiService.getWeatherByCity(dto.cityName)
+                        response.apply { resultCode = 200 }
+                    }
 
-           }
+                    else -> {
+                        val response = weatherApiService.getCurrentWeather(
+                            (dto as LocationWeatherRequest).location.latitude, dto.location.latitude
+                        )
+                        response.apply { resultCode = 200 }
+                    }
+                }
+
+
+            } catch (e: Throwable) {
+                Log.e(TAG, "${e.message}")
+                Response().apply { resultCode = 500 }
+            }
         }
     }
 
@@ -56,5 +67,9 @@ class RetrofitNetworkClient(
 
         }
         return false
+    }
+
+    private companion object {
+        const val TAG = "RetrofitNetworkClient"
     }
 }

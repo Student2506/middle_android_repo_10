@@ -1,10 +1,9 @@
 package ru.yandex.buggyweatherapp.presentation
 
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -13,6 +12,7 @@ import kotlinx.coroutines.launch
 import ru.yandex.buggyweatherapp.domain.api.LocationInteractor
 import ru.yandex.buggyweatherapp.domain.api.WeatherInteractor
 import ru.yandex.buggyweatherapp.domain.model.Location
+import ru.yandex.buggyweatherapp.domain.model.Resource
 import ru.yandex.buggyweatherapp.domain.model.WeatherData
 import ru.yandex.buggyweatherapp.utils.ImageLoader
 import java.util.Timer
@@ -22,7 +22,7 @@ import javax.inject.Inject
 @HiltViewModel
 class WeatherViewModel @Inject constructor(
     private val weatherInteractor: WeatherInteractor,
-    private val locationInteractor: LocationInteractor
+    private val locationInteractor: LocationInteractor,
 ) : ViewModel() {
 //
 //
@@ -38,7 +38,7 @@ class WeatherViewModel @Inject constructor(
     val weatherData = MutableLiveData<WeatherData>()
     val currentLocation = MutableLiveData<Location>()
     val isLoading = MutableLiveData<Boolean>()
-    val error = MutableLiveData<String>()
+    val error = MutableLiveData<String?>()
     val cityName = MutableLiveData<String>()
 
 
@@ -78,18 +78,16 @@ class WeatherViewModel @Inject constructor(
     }
 
     fun getWeatherForLocation(location: Location) {
-        isLoading.value = true
-        error.value = null
+        isLoading.postValue(true)
+        error.postValue(null)
 
-        weatherInteractor.getWeatherData(location) { data, exception ->
-
-            Handler(Looper.getMainLooper()).post {
-                isLoading.value = false
-
-                if (data != null) {
-                    weatherData.value = data
+        viewModelScope.launch {
+            isLoading.postValue(false)
+            weatherInteractor.getWeatherData(location).collect {
+                if (it is Resource.Success) {
+                    weatherData.postValue(it.data!!)
                 } else {
-                    error.value = exception?.message ?: "Unknown error"
+                    error.postValue(it.message ?: "Unknown error")
                 }
             }
         }
@@ -101,19 +99,22 @@ class WeatherViewModel @Inject constructor(
             return
         }
 
-        isLoading.value = true
-        error.value = null
-        weatherInteractor.getWeatherByCity(city) { data, exception ->
-            isLoading.value = false
-            if (data != null) {
-                weatherData.value = data
-                cityName.value = data.cityName
-                currentLocation.value = Location(0.0, 0.0, data.cityName)
-            } else {
-                error.value = exception?.message ?: "Unknown error"
+        isLoading.postValue(true)
+        error.postValue(null)
+        viewModelScope.launch {
+            weatherInteractor.getWeatherByCity(city).collect {
+                isLoading.postValue(false)
+                if (it is Resource.Success) {
+                    weatherData.postValue(it.data!!)
+                    cityName.postValue(it.data.cityName)
+                    currentLocation.postValue(Location(0.0, 0.0, it.data.cityName))
+                } else {
+                    error.postValue(it.message ?: "Unknown error")
+                }
             }
         }
     }
+
 
     fun formatTemperature(temp: Double): String {
         return "${temp.toInt()}°C"
@@ -148,5 +149,9 @@ class WeatherViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+    }
+
+    companion object {
+        private const val TAG = "WeatherViewModel"
     }
 }

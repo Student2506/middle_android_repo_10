@@ -6,10 +6,7 @@ import ru.yandex.buggyweatherapp.domain.model.Resource
 import ru.yandex.buggyweatherapp.domain.model.WeatherData
 
 interface WeatherRepositoryApi {
-    fun getWeatherData(
-        location: Location,
-        callback: (WeatherData?, Exception?) -> Unit,
-    ): Flow<Resource<WeatherData>>
+    fun getWeatherData(location: Location): Flow<Resource<WeatherData>>
 
-    fun getWeatherByCity(cityName: String, callback: (WeatherData?, Exception?) -> Unit)
+    fun getWeatherByCity(cityName: String): Flow<Resource<WeatherData>>
 }
