@@ -24,16 +24,6 @@ class WeatherViewModel @Inject constructor(
     private val weatherInteractor: WeatherInteractor,
     private val locationInteractor: LocationInteractor,
 ) : ViewModel() {
-//
-//
-//    private lateinit var activityContext: Context
-//
-//
-////    private val weatherRepository = WeatherRepository()
-//    private val locationRepository by lazy {
-//        LocationRepository(activityContext)
-//    }
-
 
     val weatherData = MutableLiveData<WeatherData>()
     val currentLocation = MutableLiveData<Location>()
@@ -41,21 +31,14 @@ class WeatherViewModel @Inject constructor(
     val error = MutableLiveData<String?>()
     val cityName = MutableLiveData<String>()
 
-
     private val coroutineScope = CoroutineScope(Dispatchers.Main + Job())
-
 
     private var refreshTimer: Timer? = null
 
-
     fun initialize(context: Context) {
-//        this.activityContext = context
         fetchCurrentLocationWeather()
-
-
         startAutoRefresh()
     }
-
 
     fun fetchCurrentLocationWeather() {
         isLoading.value = true
@@ -115,7 +98,6 @@ class WeatherViewModel @Inject constructor(
         }
     }
 
-
     fun formatTemperature(temp: Double): String {
         return "${temp.toInt()}°C"
     }
@@ -126,7 +108,6 @@ class WeatherViewModel @Inject constructor(
             ImageLoader.loadImage(iconUrl)
         }
     }
-
 
     private fun startAutoRefresh() {
         refreshTimer = Timer()

@@ -1,6 +1,5 @@
 package ru.yandex.buggyweatherapp.data.api
 
-import com.google.gson.JsonObject
 import retrofit2.http.GET
 import retrofit2.http.Query
 import ru.yandex.buggyweatherapp.data.dto.CityWeatherResponse
@@ -14,7 +13,6 @@ interface WeatherApiService {
         const val API_KEY = "8fd9a0f2216e2bc16a09102e2af8ab1d"
         const val BASE_URL = "http://api.openweathermap.org/data/2.5/"
     }
-//    [55.75308338761605,37.58767489392091]
 
     @GET("weather")
     suspend fun getCurrentWeather(
